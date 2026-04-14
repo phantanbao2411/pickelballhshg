@@ -1,34 +1,40 @@
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwqX-DPXJf8a8pcO32FNutVMRNV-EEyDsMaUvv7aZq3oOAKWv_QKZjy2i2xNMp54RssKA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw4gYWD_LK8O4h0Kcl6i12iUgK-ryN0jadt5uZU0wW2JVyMiYaPh2lkrbzzEyC449_tkA/exec";
 
-// Lưu theo match (không trùng)
-function saveScore(match, p1, p2, s1, s2) {
+// ===== SAVE =====
+function saveScore(p1, p2, s1, s2) {
     fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ match, p1, p2, s1, s2 })
+        body: JSON.stringify({ p1, p2, s1, s2 })
     });
 }
 
-// Load dữ liệu từ Google Sheet
+// ===== LOAD =====
 async function loadData() {
-    const res = await fetch(API_URL);
-    const data = await res.json();
+    try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
 
-    data.slice(1).forEach(row => {
-        const matchIndex = row[0] - 1;
-        const matchRow = document.querySelectorAll('tbody tr[data-p1]')[matchIndex];
+        document.querySelectorAll('tbody tr[data-p1]').forEach(row => {
+            const p1 = row.getAttribute('data-p1');
+            const p2 = row.getAttribute('data-p2');
 
-        if (matchRow) {
-            matchRow.querySelector('.p1-score').value = row[3];
-            matchRow.querySelector('.p2-score').value = row[4];
-        }
-    });
+            const found = data.find(r => r[1] == p1 && r[2] == p2);
 
-    updateStandings();
+            if (found) {
+                row.querySelector('.p1-score').value = found[3];
+                row.querySelector('.p2-score').value = found[4];
+            }
+        });
+
+        updateStandings();
+    } catch (err) {
+        console.log("Load lỗi:", err);
+    }
 }
 
-// Gắn sự kiện input
-document.querySelectorAll('tbody tr[data-p1]').forEach((row, index) => {
+// ===== EVENT INPUT =====
+document.querySelectorAll('tbody tr[data-p1]').forEach(row => {
     const inputs = row.querySelectorAll('.score-input');
 
     inputs.forEach(input => {
@@ -40,16 +46,16 @@ document.querySelectorAll('tbody tr[data-p1]').forEach((row, index) => {
                 const p1 = row.getAttribute('data-p1');
                 const p2 = row.getAttribute('data-p2');
 
-                saveScore(index + 1, p1, p2, s1, s2);
+                saveScore(p1, p2, s1, s2);
                 updateStandings();
             }
         });
     });
 });
 
-// Auto refresh mỗi 5 giây (giả realtime)
-setInterval(loadData, 5000);
+// ===== AUTO SYNC (giả realtime) =====
+setInterval(loadData, 3000);
 
-// Load lần đầu
+// ===== LOAD LẦN ĐẦU =====
 loadData();
 </script>
