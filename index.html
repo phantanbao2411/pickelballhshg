@@ -1,7 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSHG Pickleball - All Stars Lần 1 🏓🌸</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* ===== GIỮ NGUYÊN STYLE CỦA BẠN ===== */
+        body { font-family: 'Nunito', sans-serif; background-color: #ffe4e1; color: #5a3d5c; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 20px; box-shadow: 0 10px 20px rgba(255, 105, 180, 0.2); border: 3px dashed #ffb6c1; }
+        h1 { text-align: center; color: #ff1493; font-size: 2.5em; text-shadow: 2px 2px 4px #ffc0cb; }
+        h2 { color: #d02090; border-bottom: 2px solid #ffb6c1; padding-bottom: 5px; display: inline-block; }
+        .info-box, .budget-box, .rules-box { background-color: #fff0f5; padding: 15px 25px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid #ff69b4; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 12px; font-size: 1.1em; line-height: 1.5; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        th, td { border: 1px solid #ffb6c1; padding: 12px; text-align: center; }
+        th { background-color: #ff69b4; color: white; }
+        .score-input { width: 40px; padding: 5px; text-align: center; font-size: 1.2em; font-weight: bold; color: #ff1493; border: 2px solid #ffb6c1; border-radius: 8px; background-color: #fffaf0; }
+        .highlight { background-color: #ffe4e1 !important; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🏓 HSHG Pickleball All Stars 🌸</h1>
+
+    <h2>📅 Nhập kết quả</h2>
+
+    <table>
+        <tbody>
+            <tr data-p1="Huy Hà" data-p2="Hồng Vi">
+                <td>Huy Hà vs Hồng Vi</td>
+                <td><input type="number" class="score-input"></td>
+                <td><input type="number" class="score-input"></td>
+            </tr>
+            <tr data-p1="Tấn Bảo" data-p2="Lê Minh">
+                <td>Tấn Bảo vs Lê Minh</td>
+                <td><input type="number" class="score-input"></td>
+                <td><input type="number" class="score-input"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>📊 Bảng xếp hạng</h2>
+    <table>
+        <tbody id="standings-body"></tbody>
+    </table>
+</div>
+
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw4gYWD_LK8O4h0Kcl6i12iUgK-ryN0jadt5uZU0wW2JVyMiYaPh2lkrbzzEyC449_tkA/exec";
 
-// ===== SAVE =====
+const players = ["Huy Hà", "Hồng Vi", "Tấn Bảo", "Lê Minh"];
+
+function updateStandings() {
+    let stats = {};
+
+    players.forEach(p => {
+        stats[p] = { played: 0, won: 0, lost: 0, diff: 0, points: 0 };
+    });
+
+    document.querySelectorAll("tr[data-p1]").forEach(row => {
+        const inputs = row.querySelectorAll("input");
+        let s1 = inputs[0].value;
+        let s2 = inputs[1].value;
+
+        if (s1 && s2) {
+            s1 = parseInt(s1);
+            s2 = parseInt(s2);
+
+            const p1 = row.dataset.p1;
+            const p2 = row.dataset.p2;
+
+            stats[p1].played++;
+            stats[p2].played++;
+
+            stats[p1].diff += s1 - s2;
+            stats[p2].diff += s2 - s1;
+
+            if (s1 > s2) {
+                stats[p1].won++; stats[p1].points += 3;
+                stats[p2].lost++;
+            } else {
+                stats[p2].won++; stats[p2].points += 3;
+                stats[p1].lost++;
+            }
+        }
+    });
+
+    let sorted = Object.entries(stats).sort((a,b)=>b[1].points-a[1].points || b[1].diff-a[1].diff);
+
+    let tbody = document.getElementById("standings-body");
+    tbody.innerHTML = "";
+
+    sorted.forEach(([name, s], i) => {
+        tbody.innerHTML += `
+        <tr>
+            <td>${name}</td>
+            <td>${s.played}</td>
+            <td>${s.won}</td>
+            <td>${s.lost}</td>
+            <td>${s.diff}</td>
+            <td>${s.points}</td>
+            <td>${i+1}</td>
+        </tr>`;
+    });
+}
+
+// SAVE
 function saveScore(p1, p2, s1, s2) {
     fetch(API_URL, {
         method: "POST",
@@ -9,53 +117,48 @@ function saveScore(p1, p2, s1, s2) {
     });
 }
 
-// ===== LOAD =====
+// LOAD
 async function loadData() {
-    try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
+    const res = await fetch(API_URL);
+    const data = await res.json();
 
-        document.querySelectorAll('tbody tr[data-p1]').forEach(row => {
-            const p1 = row.getAttribute('data-p1');
-            const p2 = row.getAttribute('data-p2');
+    document.querySelectorAll("tr[data-p1]").forEach(row => {
+        const p1 = row.dataset.p1;
+        const p2 = row.dataset.p2;
 
-            const found = data.find(r => r[1] == p1 && r[2] == p2);
+        const found = data.find(r => r[1] == p1 && r[2] == p2);
 
-            if (found) {
-                row.querySelector('.p1-score').value = found[3];
-                row.querySelector('.p2-score').value = found[4];
-            }
-        });
+        if (found) {
+            const inputs = row.querySelectorAll("input");
+            inputs[0].value = found[3];
+            inputs[1].value = found[4];
+        }
+    });
 
-        updateStandings();
-    } catch (err) {
-        console.log("Load lỗi:", err);
-    }
+    updateStandings();
 }
 
-// ===== EVENT INPUT =====
-document.querySelectorAll('tbody tr[data-p1]').forEach(row => {
-    const inputs = row.querySelectorAll('.score-input');
+// EVENT
+document.querySelectorAll("tr[data-p1]").forEach(row => {
+    const inputs = row.querySelectorAll("input");
 
     inputs.forEach(input => {
-        input.addEventListener('change', () => {
+        input.addEventListener("change", () => {
             const s1 = inputs[0].value;
             const s2 = inputs[1].value;
 
-            if (s1 !== "" && s2 !== "") {
-                const p1 = row.getAttribute('data-p1');
-                const p2 = row.getAttribute('data-p2');
-
-                saveScore(p1, p2, s1, s2);
+            if (s1 && s2) {
+                saveScore(row.dataset.p1, row.dataset.p2, s1, s2);
                 updateStandings();
             }
         });
     });
 });
 
-// ===== AUTO SYNC (giả realtime) =====
+// sync
 setInterval(loadData, 3000);
-
-// ===== LOAD LẦN ĐẦU =====
 loadData();
 </script>
+
+</body>
+</html>
