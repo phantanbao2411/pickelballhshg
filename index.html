@@ -1,81 +1,55 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HSHG Pickleball</title>
-</head>
-
-<body>
-
-<h2>Nhập tỷ số</h2>
-
-<table border="1">
-<tr>
-<td>Match 1</td>
-<td><input type="number" class="p1-score"></td>
-<td><input type="number" class="p2-score"></td>
-</tr>
-<tr>
-<td>Match 2</td>
-<td><input type="number" class="p1-score"></td>
-<td><input type="number" class="p2-score"></td>
-</tr>
-</table>
-
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwqX-DPXJf8a8pcO32FNutVMRNV-EEyDsMaUvv7aZq3oOAKWv_QKZjy2i2xNMp54RssKA/exec";
 
-// Lưu dữ liệu
-function saveScore(match, s1, s2) {
+// Lưu theo match (không trùng)
+function saveScore(match, p1, p2, s1, s2) {
     fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({
-            match: match,
-            p1: "A",
-            p2: "B",
-            s1: s1,
-            s2: s2
-        })
+        body: JSON.stringify({ match, p1, p2, s1, s2 })
     });
 }
 
-// Load dữ liệu
+// Load dữ liệu từ Google Sheet
 async function loadData() {
     const res = await fetch(API_URL);
     const data = await res.json();
 
-    data.slice(1).forEach((row, index) => {
-        const rows = document.querySelectorAll("tr");
+    data.slice(1).forEach(row => {
+        const matchIndex = row[0] - 1;
+        const matchRow = document.querySelectorAll('tbody tr[data-p1]')[matchIndex];
 
-        if (rows[index + 1]) {
-            rows[index + 1].querySelector(".p1-score").value = row[3];
-            rows[index + 1].querySelector(".p2-score").value = row[4];
+        if (matchRow) {
+            matchRow.querySelector('.p1-score').value = row[3];
+            matchRow.querySelector('.p2-score').value = row[4];
         }
     });
+
+    updateStandings();
 }
 
 // Gắn sự kiện input
-document.querySelectorAll("tr").forEach((row, index) => {
-    const inputs = row.querySelectorAll("input");
+document.querySelectorAll('tbody tr[data-p1]').forEach((row, index) => {
+    const inputs = row.querySelectorAll('.score-input');
 
-    if (inputs.length === 2) {
-        inputs.forEach(input => {
-            input.addEventListener("change", () => {
-                const s1 = inputs[0].value;
-                const s2 = inputs[1].value;
+    inputs.forEach(input => {
+        input.addEventListener('change', () => {
+            const s1 = inputs[0].value;
+            const s2 = inputs[1].value;
 
-                if (s1 !== "" && s2 !== "") {
-                    saveScore(index, s1, s2);
-                }
-            });
+            if (s1 !== "" && s2 !== "") {
+                const p1 = row.getAttribute('data-p1');
+                const p2 = row.getAttribute('data-p2');
+
+                saveScore(index + 1, p1, p2, s1, s2);
+                updateStandings();
+            }
         });
-    }
+    });
 });
 
-// Load khi mở web
+// Auto refresh mỗi 5 giây (giả realtime)
+setInterval(loadData, 5000);
+
+// Load lần đầu
 loadData();
 </script>
-
-</body>
-</html>
